@@ -1,17 +1,31 @@
 import functions
 import pandas as pd
 import numpy as np
+import pathlib
+import os
+import json
 
-from geopy.geocoders import Nominatim
+baseDir=pathlib.Path(__file__).parent.resolve()
+configLocation=os.path.join(baseDir, "config.json")
+with open(configLocation, "r") as f:
+    configs = json.load(f)
 
-sourcefile='./Data/AncientTrees/Ancient_Tree_Inventory_ATI_-1118788141033660175.csv'
+datafolder=os.path.join(baseDir,configs["inputfolder"])
+outputfolder=os.path.join(baseDir,configs["outputfolder"])
+sourcefile = os.path.join(datafolder,configs["ati_inputfile"])
+
+
+# load raw ATI base data (downloaded from https://opendata-woodlandtrust.hub.arcgis.com/datasets)
 sourceData=pd.read_csv(sourcefile)
 
 #Get vis polygon geometries
-polys=functions.fetchPolygons()
+regionpolygons=functions.fetchPolygons( files= {'uki_regionfile': os.path.join(datafolder,configs["uki_regionfile"]), \
+                                          'guernsey_regionfile':os.path.join(datafolder,configs["guernsey_regionfile"]), \
+                                          'iom_regionfile':os.path.join(datafolder,configs["iom_regionfile"]) }, \
+                              outputfolder= os.path.join(datafolder,configs["all_regionfolder"]))
 
 # assign geographic regions based on polygons and x/y
-sourceData=functions.assignPolygon(sourceData, polys)
+sourceData=functions.assignPolygon(sourceData, regionpolygons)
 
 
 # create boolean flags for fields with markers
@@ -19,7 +33,7 @@ markerDict={'Protection':',','Epiphyte':',', 'Fungus':',', 'Condition':',', 'Spe
 functions.createBoolFlag(sourceData, markerDict)
 
 # Null handling for specific fields - Unknown
-fillna_fields=['StandingStatus', 'LivingStatus', 'PublicAccessibilityStatus', 'Protection', 'SpecialStatus',  'TreeForm', 'Species']
+fillna_fields=['StandingStatus', 'LivingStatus', 'RecorderOrganisationName','LocalName','PublicAccessibilityStatus', 'Protection', 'SpecialStatus',  'TreeForm', 'Species']
 functions.fillnans(sourceData, fillna_fields)
 
 
@@ -32,8 +46,8 @@ typeDict={
 'LocalName': str, 
 'Country': str, 
 'Country_HL': str, 
-'NUTS_ID': str, 
-'NUTS_NAME': str, 
+'RegionID': str, 
+'RegionName': str, 
 'StandingStatus': str,
 'LivingStatus': str, 
 'PublicAccessibilityStatus': str, 
@@ -54,13 +68,14 @@ functions.typeCheck(sourceData, typeDict)
 functions.fixDates(sourceData, ['SurveyDate', 'VerifiedDate'])
 
 
-# Apply grouping to create new higher-level species column
+# Apply grouping to create new higher-level species column. This list generated during EDA - see relevant notebook
 species_groups=['oak', 'beech', 'cedar', 'lime', 'walnut', 'ash', 'alder',
        'hawthorn', 'willow', 'larch', 'elm', 'poplar', 'cherry',
        'service', 'apple', 'juniper', 'mulberry', 'birch', 'sycamore',
        'maple', 'chestnut', 'pear', 'plane', 'cypress', 'plum', 'yew',
        'laburnum', 'pine', 'whitebeam', 'fir', 'buckthorn']
-sourceData['species_group']=sourceData.Species.apply(lambda x:functions.groupSpecies(x, species_groups) )
+sourceData['Species']=np.where(sourceData['Species'].str.lower()=='other', 'Unknown',sourceData['Species'] )
+sourceData['SpeciesGroup']=sourceData.Species.apply(lambda x:functions.groupSpecies(x, species_groups) )
 print('Species grouping complete')
 
 # Create high level flags for Alive status and Ash Dieback
@@ -82,8 +97,9 @@ import datetime as dt
 now=dt.datetime.now().strftime("%d-%m-%Y_%H%M")
 
 #save 
-base_output_file=f'./Data/AncientTrees/ATI_Base_table_{now}.csv'
-marker_output_file=f'./Data/AncientTrees/ATI_Marker_table_{now}.csv'
+base_output_file=os.path.join(outputfolder,f'ATI_Base_table_{now}.csv')
+marker_output_file=os.path.join(outputfolder,f'ATI_Marker_table_{now}.csv')
+
 sourceData.to_csv(base_output_file,index=False)
 print(f'Base table saved with {len(sourceData)} tree records saved to {base_output_file}')
 markerTable.to_csv(marker_output_file,index=False)

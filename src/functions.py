@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import geopandas as gpd
-import os.path
+import os
 import datetime as dt
 import re 
 
@@ -127,7 +127,7 @@ def makePivot(data, col, delim):
     pivot.variable=col
     return pivot
 
-def createMarkerTable(data, colDict):
+def createMarkerTable(data, colDict, strDict={"''":"'", "â€™":"'", "â€“":"-"}):
     """Given a dataset containing text attribute columns composed of concatenated markers, create a long-format table with one row for every marker value across each attribute per tree
         This concatenates the DataFrame outputs of the makePivot function.
 
@@ -143,6 +143,8 @@ def createMarkerTable(data, colDict):
         pivot=makePivot(data, each, colDict[each])
         output=pd.concat([output, pivot], axis=0)
     output=output.rename(columns={'variable': 'MarkerType', 'value':'MarkerValue'})
+    # TO DO - add section replacing incorrect strings in MarkerValue
+    output.MarkerValue=output.MarkerValue.replace(strDict, regex=True)
     return output
 
 
@@ -198,6 +200,7 @@ def fetchPolygons(files={'uki_regionfile':'./Data/AncientTrees/Europe_NUTs_2021/
         regionPolygons['Country']=regionPolygons.Country.apply(lambda x: 'England' if len(x)==0 else x[0] )
         regionPolygons['CountryHL']=np.where(regionPolygons.Country.isin(['England', 'Scotland', 'Wales', 'Northern Ireland']), 'UK', regionPolygons.Country)
         regionPolygons=regionPolygons.rename(columns={'NUTS_NAME': 'RegionName', 'NUTS_ID': 'RegionID'})
+        regionPolygons.RegionName=regionPolygons[['Country', 'RegionName']].apply(lambda x: x.RegionName if len(re.findall(r'England|Scotland|Wales|Northern Ireland|Isle of Man|Guernsey+', x.RegionName))>0 else x.RegionName+' ('+x.Country+')', axis=1)
 
         if not  os.path.exists(outputfolder) :
             os.makedirs(outputfolder)
@@ -215,7 +218,7 @@ def assignPolygon(data, polygons):
         polygons (GeoDataFrame): including all regional polygons chosen for visualisation, with columns NUTS_ID, NUTS_NAME, CNTR_CODE and geometry (in EPSG:27700)
 
     Returns:
-        DataFrame: original dataframe with redundant geo-columns removed (Town, County) and updated region / Country information. Country represents lower level detail e.g. Wales, Country_HL repreents higher level e.g. UK
+        DataFrame: original dataframe with redundant geo-columns removed (Town, County) and updated region / Country information. Country represents lower level detail e.g. Wales, CountryHL repreents higher level e.g. UK
     """
     
     tempdata=gpd.GeoDataFrame(data[['Id']], geometry= gpd.points_from_xy(data.x, data.y))
@@ -241,13 +244,22 @@ def assignPolygon(data, polygons):
 
     # add these into the main output data 
     generate_df=pd.concat([generate_df, tempdata[generate_df.columns]], axis=0)
-    generate_df=generate_df.merge(polygons[['RegionName', 'RegionID', 'CNTR_CODE', 'Country', 'Country_HL']], on='RegionID', how='left')
+    generate_df=generate_df.merge(polygons[['RegionName', 'RegionID', 'CNTR_CODE', 'Country', 'CountryHL']], on='RegionID', how='left')
 
     # original Country field to be replaced by polygon mapping and County/Town not required for analysis / not well populated
     data=data.drop(columns=['Country', 'County', 'Town'])
     # join new info into original dataset
-    data=data.merge(generate_df[['Id', 'RegionID', 'RegionName', 'Country', 'Country_HL']], on=['Id'], how='left')
+    data=data.merge(generate_df[['Id', 'RegionID', 'RegionName', 'Country', 'CountryHL']], on=['Id'], how='left')
     return data
+
+
+def archiveFiles(currentPath):
+    newpath=os.path.join(currentPath, 'archive/')
+    for filename in os.listdir(currentPath):
+        if not os.path.isdir(os.path.join(currentPath, filename)):
+            os.rename(f"{currentPath}/{filename}", f"{newpath}{filename}")
+            print(f'Archived file {filename}')
+
 
 
 def getTown(row, geocoder):

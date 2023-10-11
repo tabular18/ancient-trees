@@ -51,7 +51,7 @@ typeDict={
 'RecorderOrganisationName': str,
 'LocalName': str, 
 'Country': str, 
-'Country_HL': str, 
+'CountryHL': str, 
 'RegionID': str, 
 'RegionName': str, 
 'StandingStatus': str,
@@ -109,6 +109,8 @@ sourceData=sourceData.drop(columns=markerDict)
 import datetime as dt
 now=dt.datetime.now().strftime("%d-%m-%Y_%H%M")
 
+#archive existing files
+functions.archiveFiles(outputfolder)
 #save 
 base_output_file=os.path.join(outputfolder,f'ATI_Base_table_{now}.csv')
 marker_output_file=os.path.join(outputfolder,f'ATI_Marker_table_{now}.csv')

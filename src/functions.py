@@ -266,18 +266,25 @@ def archiveFiles(currentPath):
             print(f'Archived file {filename}')
 
 
-def saveCSVFile(data, filename, folder):
-    """Save the given dataset to the requested csv location, with a timestamp suffix on filename
+def saveFile(data, filename, folder, fileFormat='csv'):
+    """Save the given dataset to the requested location, with a timestamp suffix on filename
 
     Args:
-        data (DataFrame): target dataframe to be saved to csv
+        data (DataFrame): target dataframe to be saved to given filetype
         filename (string): requested file name
         folder (string): output folder location
+        fileFormat (string) : output file type (csv/parquet). Defaults to csv
     """
+    print(fileFormat)
     now=dt.datetime.now().strftime("%d-%m-%Y_%H%M")
-    outputFileName=os.path.join(folder,f'{filename}_{now}.csv')
-    data.to_csv(outputFileName,index=False)
-    print(f'{filename} data saved with {len(data)} records saved to {outputFileName}')
+    if fileFormat=='csv':
+        outputFileName=os.path.join(folder,f'{filename}_{now}.csv')
+        data.to_csv(outputFileName,index=False)
+        print(f'{filename} data saved with {len(data)} records saved to {outputFileName}')
+    elif fileFormat=='parquet':
+        outputFileName=os.path.join(folder,f'{filename}_{now}.parquet')
+        data.to_parquet(outputFileName,index=False)
+        print(f'{filename} data saved with {len(data)} records saved to {outputFileName}')
 
 
 

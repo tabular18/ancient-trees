@@ -31,43 +31,16 @@ sourceData=functions.assignPolygon(sourceData, regionpolygons)
 
 
 # create boolean flags for fields with markers
-markerDict={'Protection':',','Epiphyte':',', 'Fungus':',', 'Condition':',', 'SpecialStatus':',', 'Surroundings':',' }
+markerDict = configs["markerDict"]
 functions.createBoolFlag(sourceData, markerDict)
 
 # Null handling for specific fields - Unknown
-fillna_fields=['StandingStatus', 'LivingStatus', 'RecorderOrganisationName','LocalName','PublicAccessibilityStatus', 'Protection', 'SpecialStatus',  'TreeForm', 'Species']
-functions.fillnans(sourceData, fillna_fields)
+fillNAFields=configs["fillNAFields"]
+functions.fillnans(sourceData, fillNAFields)
 
 
 # enforce data types
-typeDict={
-'OBJECTID': str , 
-'Id': str , 
-'Species': str, 
-'TreeForm': str, 
-'Latitude': str,
-'Longitude': str,
-'x': str,
-'y': str,
-'RecorderOrganisationName': str,
-'LocalName': str, 
-'Country': str, 
-'CountryHL': str, 
-'RegionID': str, 
-'RegionName': str, 
-'StandingStatus': str,
-'LivingStatus': str, 
-'PublicAccessibilityStatus': str, 
-'VeteranStatus': str,
-'Condition': str, 
-'Surroundings': str, 
-'Protection': str, 
-'SpecialStatus': str, 
-'Epiphyte': str,
-'Fungus': str,
-'SurveyDate': str # for further formatting prior to datetime
-}
-
+typeDict=configs["typeDict"]
 functions.typeCheck(sourceData, typeDict)
 
 #convert Lat/Long to 8dp (11,8) and store as string (for python only)
@@ -79,15 +52,11 @@ sourceData.y=sourceData.y.str.ljust(17, '0')
 
 # Date fields appear to be in mm/dd/yyyy format. No indication that it is inconsistent, therefore we will treat these uniformly
 # Set null value as 31/12/9999
-functions.fixDates(sourceData, ['SurveyDate', 'VerifiedDate'])
+functions.fixDates(sourceData, configs["dateFields"])
 
 
 # Apply grouping to create new higher-level species column. This list generated during EDA - see relevant notebook
-species_groups=['oak', 'beech', 'cedar', 'lime', 'walnut', 'ash', 'alder',
-       'hawthorn', 'willow', 'larch', 'elm', 'poplar', 'cherry',
-       'service', 'apple', 'juniper', 'mulberry', 'birch', 'sycamore',
-       'maple', 'chestnut', 'pear', 'plane', 'cypress', 'plum', 'yew',
-       'laburnum', 'pine', 'whitebeam', 'fir', 'buckthorn']
+species_groups=configs["speciesGroups"]
 sourceData['Species']=np.where(sourceData['Species'].str.lower()=='other', 'Unknown',sourceData['Species'] )
 sourceData['SpeciesGroup']=sourceData.Species.apply(lambda x:functions.groupSpecies(x, species_groups) )
 print('Species grouping complete')
@@ -112,12 +81,12 @@ functions.archiveFiles(outputfolder)
 functions.archiveFiles(outputfolderDummy)
 
 #save Base Table
-functions.saveCSVFile(sourceData, 'ATI_Base_table' , outputfolder)
+functions.saveFile(sourceData, 'ATI_Base_table' , outputfolder, configs["outputFormat"])
 #save Marker Table
-functions.saveCSVFile(markerTable, 'ATI_Marker_table' , outputfolder)
+functions.saveFile(markerTable, 'ATI_Marker_table' , outputfolder, configs["outputFormat"])
 
 #create dummy datasets for Github storage (in place of ATI data)
 baseDummy, otherDummy=functions.createDummyFiles(sourceData, [markerTable], indexField='OBJECTID', makeUnknownFields=['RecorderOrganisationName'])
 markerDummy=otherDummy[0]
-functions.saveCSVFile(baseDummy, 'DUMMY_ATI_Base_table' , outputfolderDummy)
-functions.saveCSVFile(markerDummy, 'DUMMY_ATI_Marker_table' , outputfolderDummy)
+functions.saveFile(baseDummy, 'DUMMY_ATI_Base_table' , outputfolderDummy, configs["outputFormat"])
+functions.saveFile(markerDummy, 'DUMMY_ATI_Marker_table' , outputfolderDummy, configs["outputFormat"])

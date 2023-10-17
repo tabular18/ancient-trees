@@ -1,0 +1,12 @@
+Id,MarkerType,MarkerValue
+298289,Epiphyte,Ivy
+310013,Epiphyte,Lichen
+310013,Epiphyte,Moss
+310013,Epiphyte,Ivy
+298289,Condition,Decaying wood on the ground
+270002,Condition,Decaying wood on the ground
+310013,Condition,Decaying wood in the crown
+298289,Surroundings,Woodland
+270002,Surroundings,River / canal bank
+310013,Surroundings,Hedgerow
+285152,Surroundings,Avenue

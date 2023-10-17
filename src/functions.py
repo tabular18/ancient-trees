@@ -254,6 +254,11 @@ def assignPolygon(data, polygons):
 
 
 def archiveFiles(currentPath):
+    """Given a data folder, pick up all existing files and move into archive sub-folder
+
+    Args:
+        currentPath (string): path to data folder which contains files and a sub-folder called 'archive'
+    """
     newpath=os.path.join(currentPath, 'archive/')
     for filename in os.listdir(currentPath):
         if not os.path.isdir(os.path.join(currentPath, filename)):
@@ -261,6 +266,65 @@ def archiveFiles(currentPath):
             print(f'Archived file {filename}')
 
 
+def saveCSVFile(data, filename, folder):
+    """Save the given dataset to the requested csv location, with a timestamp suffix on filename
+
+    Args:
+        data (DataFrame): target dataframe to be saved to csv
+        filename (string): requested file name
+        folder (string): output folder location
+    """
+    now=dt.datetime.now().strftime("%d-%m-%Y_%H%M")
+    outputFileName=os.path.join(folder,f'{filename}_{now}.csv')
+    data.to_csv(outputFileName,index=False)
+    print(f'{filename} data saved with {len(data)} records saved to {outputFileName}')
+
+
+
+def createDummyFiles(baseData, otherDatasets : list = [], indexField= '', idName='Id', nSamples=5, makeUnknownFields=[]):
+    """Given a base dataset and any additional datasets (optional), create dummy datasets using samples of raw data. 
+    Obfuscate all ID fields and ensure same IDs available across datasets.
+    Note - this function seems more complicated than it needs to be because we want to be able to scale if the data model is split across more tables in future!
+
+    Args:
+        baseData (DataFrame): Base table containing fact information and two ID fields - in this case, an index ID field and a separate ID field
+        otherDatasets (list of DataFrames, optional): Any other tables to be sampled. Defaults to empty.
+        indexField (str, optional): Name of the Index-based ID field in the base table. Defaults to ''.
+        idName (str, optional): Name of the primary ID field in the tables. Must be named consistenly throughout datasets. Defaults to 'Id'.
+        nSamples (int, optional): Sample size for dummy datasets. Defaults to 5.
+        makeUnknownFields (list, optional): Names of additional categorical fields to be obfuscated with 'Unknown. Defaults to empty.
+
+    Returns:
+        DataFrame, list of Dataframes: Obfuscated sample datasets of baseData and any additional tables
+    """
+    # We want this to scale in case the data model expands to more than 2 tables, so instead of using a sample approach, we pre-generate random index to sample
+    # Assuming OBJECTID index-ID column is available, which matches across available tables
+    maxBaseID=baseData[idName].astype(int).max()
+    baseDummy=baseData.sample(nSamples).copy().reset_index(drop=True)
+    if indexField!='' and indexField in baseDummy.columns:
+        baseDummy[indexField]=baseDummy.index
+
+    for each in makeUnknownFields:
+        if each in baseDummy.columns:
+            baseDummy[each]='Unknown'
+    # generate new random IDs which are out of range of original
+    randIndex=np.random.randint(maxBaseID+1, maxBaseID+len(baseData), nSamples)
+    id_dict={baseDummy.loc[i,idName]:randIndex[i] for i in range(nSamples)}
+    baseDummy[idName]=baseDummy[idName].replace(id_dict, regex=True)
+
+    dummyData=[]
+    for ind in range(len(otherDatasets)):
+        copy=otherDatasets[ind].copy()
+        copy=copy[copy[idName].isin(list(id_dict.keys()))].copy()
+        #Assign random number to obfuscate ID
+        copy[idName]=copy[idName].replace(id_dict)
+        
+        for each in makeUnknownFields:
+            if each in copy.columns:
+                copy[each]='Unknown'
+
+        dummyData.append(copy)
+    return baseDummy, dummyData
 
 def getTown(row, geocoder):
     """Use reverse geocoding to get the most appropriate level of detail equivalent to 'Town' for each row. 

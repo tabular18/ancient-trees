@@ -13,6 +13,7 @@ with open(configLocation, "r") as f:
 
 datafolder=os.path.join(parentDir,configs["inputfolder"])
 outputfolder=os.path.join(parentDir,configs["outputfolder"])
+outputfolderDummy=os.path.join(parentDir,configs["outputfolderDummy"])
 sourcefile = os.path.join(datafolder,configs["ati_inputfile"])
 
 
@@ -106,16 +107,17 @@ markerTable=functions.createMarkerTable(sourceData, markerDict)
 
 sourceData=sourceData.drop(columns=markerDict)
 
-import datetime as dt
-now=dt.datetime.now().strftime("%d-%m-%Y_%H%M")
-
 #archive existing files
 functions.archiveFiles(outputfolder)
-#save 
-base_output_file=os.path.join(outputfolder,f'ATI_Base_table_{now}.csv')
-marker_output_file=os.path.join(outputfolder,f'ATI_Marker_table_{now}.csv')
+functions.archiveFiles(outputfolderDummy)
 
-sourceData.to_csv(base_output_file,index=False)
-print(f'Base table saved with {len(sourceData)} tree records saved to {base_output_file}')
-markerTable.to_csv(marker_output_file,index=False)
-print(f'Marker table saved with {len(markerTable)} markers across {markerTable.Id.nunique()} trees saved to {marker_output_file}')
+#save Base Table
+functions.saveCSVFile(sourceData, 'ATI_Base_table' , outputfolder)
+#save Marker Table
+functions.saveCSVFile(markerTable, 'ATI_Marker_table' , outputfolder)
+
+#create dummy datasets for Github storage (in place of ATI data)
+baseDummy, otherDummy=functions.createDummyFiles(sourceData, [markerTable], indexField='OBJECTID', makeUnknownFields=['RecorderOrganisationName'])
+markerDummy=otherDummy[0]
+functions.saveCSVFile(baseDummy, 'DUMMY_ATI_Base_table' , outputfolderDummy)
+functions.saveCSVFile(markerDummy, 'DUMMY_ATI_Marker_table' , outputfolderDummy)

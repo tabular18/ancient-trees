@@ -1,10 +1,11 @@
-import functions
+import functions # custom function package for ATI ETL
 import pandas as pd
 import numpy as np
 import pathlib
 import os
 import json
 
+#Load in configs and dependencies
 baseDir=pathlib.Path(__file__).parent.resolve()
 parentDir=baseDir.parent
 configLocation=os.path.join(baseDir, "config.json")

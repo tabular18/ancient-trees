@@ -1,6 +1,6 @@
 {
 "inputfolder": "data\\input",
-"ati_inputfile": "Ancient_Tree_Inventory_ATI_-1118788141033660175.csv",
+"ati_inputfile": "ATIdownload\\Ancient_Tree_Inventory_ATI_-1118788141033660175.csv",
 "uki_regionfile":"Europe_NUTs_2021_shapes\\NUTS_RG_20M_2021_3035.shp",
 "iom_regionfile": "Isle_of_Man_shapes\\nk743nh6214.shp",
 "guernsey_regionfile": "Guernsey_shapes\\GGY_adm0.shp",

@@ -134,7 +134,7 @@ def createMarkerTable(data, colDict, strDict={"''":"'", "â€™":"'", "â€�
     Args:
         data (DataFrame): Base data, one record per tree (Id), with attribute columns containing concatenated markers
         colDict (dictionary): lookup of column names and the delimiters used to separate each marker within them
-
+        strDict (dictionary) : lookup of text replacements required within markerValues. Defaults to {"''":"'", "â€™":"'", "â€“":"-"} 
     Returns:
         DataFrame: long-form pivot table with one row per marker value, per attribute, per tree (Id)
     """
